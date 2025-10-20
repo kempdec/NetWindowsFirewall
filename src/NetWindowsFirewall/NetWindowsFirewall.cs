@@ -204,6 +204,42 @@ public class NetWindowsFirewall
     }
 
     /// <summary>
+    /// Obtém os endereços de IPs associados à regra de firewall, se houver alguma com o nome especificado.
+    /// </summary>
+    /// <param name="ruleName">O nome da regra no qual os endereços IPs serão buscados.</param>
+    /// <returns>Os endereços de IPs associados à regra de firewall, se houver alguma com 
+    /// o nome especificado.</returns>
+    public static List<IPAddress> GetIpsFromRule(string ruleName)
+    {
+        var result = new List<IPAddress>();
+
+        INetFwRules rules = GetRules();
+
+        foreach (INetFwRule rule in rules)
+        {
+            if (rule.Name == ruleName)
+            {
+                var ips = rule.RemoteAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries
+                    | StringSplitOptions.TrimEntries);
+
+                foreach (var ipStr in ips)
+                {
+                    var cleanIp = ipStr.Split('/')[0];
+
+                    if (IPAddress.TryParse(cleanIp, out IPAddress? ip))
+                    {
+                        result.Add(ip);
+                    }
+                }
+
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Adiciona o endereço de IP especificado para a regra especificada.
     /// </summary>
     /// <param name="ruleName">O nome da regra ao qual o endereço de IP será adicionado.</param>
