@@ -94,6 +94,9 @@ public static INetFwRule GetNewRule();
 // Obtém as regras do Firewall do Windows.
 public static INetFwRules GetRules();
 
+// Obtém os endereços de IPs associados à regra de firewall.
+public static List<IPAddress> GetIpsFromRule(string ruleName)
+
 // Adiciona o endereço de IP especificado para a regra especificada.
 public static void AddIpToRule(string ruleName, IPAddress ipAddress);
 
