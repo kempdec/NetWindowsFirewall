@@ -11,7 +11,7 @@
     <Authors>KempDec</Authors>
     <Company>KempDec Brasil Ltda.</Company>
     <Product>NetWindowsFirewall</Product>
-    <Description>NetWindowsFirewall é uma micro biblioetca com métodos auxiliares para gerenciar o Firewall do Windows.</Description>
+    <Description>NetWindowsFirewall é uma micro biblioteca com métodos auxiliares para gerenciar o Firewall do Windows.</Description>
     <Copyright>2024 © KempDec Brasil Ltda.</Copyright>
     <PackageProjectUrl>https://github.com/kempdec/NetWindowsFirewall</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -21,7 +21,7 @@
     <PackageTags>windows firewall;windows;firewall;helper;</PackageTags>
     <PackageOutputPath>..\..\packages</PackageOutputPath>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <Version>1.3.2</Version>
+    <Version>1.3.3</Version>
   </PropertyGroup>
 
   <ItemGroup>
