@@ -1,6 +1,6 @@
 # NetWindowsFirewall
 
-NetWindowsFirewall é uma micro biblioetca com métodos auxiliares para gerenciar o Firewall do Windows.
+NetWindowsFirewall é uma micro biblioteca com métodos auxiliares para gerenciar o Firewall do Windows.
 
 A biblioteca COM `NetFwTypeLib` é usada para gerenciar o Firewall do Windows pelo **NetWindowsFirewall**.
 
@@ -36,7 +36,7 @@ Você pode usar a instância estática, obtida através de `NetWindowsFirewall.I
 ``` csharp
 var ipAddress = IPAddress.Parse("127.0.0.1");
 
-// Adiciona uma regra de bloqueio (de entrada) para o endereço de IP "127.0.1" no Firewall do Windows.
+// Adiciona uma regra de bloqueio (de entrada) para o endereço de IP "127.0.0.1" no Firewall do Windows.
 NetWindowsFirewall.Instance.AddBlockInIpRule($"IP {ipAddress} bloqueado", ipAddress);
 
 // Adiciona uma regra de bloqueio (de saída) para o endereço de IP "127.0.0.1" no Firewall do Windows.
@@ -49,7 +49,7 @@ Ou você pode usar a partir de uma nova instância criada manualmente:
 var ipAddress = IPAddress.Parse("127.0.0.1");
 var netWindowsFirewall = new NetWindowsFirewall();
 
-// Adiciona uma regra de bloqueio (de entrada) para o endereço de IP "127.0.1" no Firewall do Windows.
+// Adiciona uma regra de bloqueio (de entrada) para o endereço de IP "127.0.0.1" no Firewall do Windows.
 netWindowsFirewall.AddBlockInIpRule($"IP {ipAddress} bloqueado", ipAddress);
 
 // Adiciona uma regra de bloqueio (de saída) para o endereço de IP "127.0.0.1" no Firewall do Windows.
@@ -60,48 +60,50 @@ netWindowsFirewall.AddBlockOutIpRule($"IP {ipAddress} bloqueado", ipAddress);
 
 Os métodos disponíveis são:
 
+Os parâmetros `description` e `localPorts` (portas locais TCP) são opcionais em todos os métodos `Add*IpRule`.
+
 ``` csharp
-// Adiciona uma nova regra de permissão (de entrada) para um endereço de IP no Firewall do Windows.
-public void AddAllowInIpRule(string name, IPAddress ipAddress);
+// Adiciona uma regra de permissão (de entrada) para um endereço de IP no Firewall do Windows.
+public void AddAllowInIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de permissão (de entrada e saída) para um endereço de IP no Firewall do Windows.
-public void AddAllowIpRule(string name, IPAddress ipAddress);
+// Adiciona uma regra de permissão (de entrada e saída) para um endereço de IP no Firewall do Windows.
+public void AddAllowIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de permissão para um endereço de IP no Firewall do Windows.
-public void AddAllowIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction);
+// Adiciona uma regra de permissão para um endereço de IP no Firewall do Windows.
+public void AddAllowIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de permissão (de saída) para um endereço de IP no Firewall do Windows.
-public void AddAllowOutIpRule(string name, IPAddress ipAddress);
+// Adiciona uma regra de permissão (de saída) para um endereço de IP no Firewall do Windows.
+public void AddAllowOutIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de bloqueio (de entrada) para um endereço de IP no Firewall do Windows.
-public void AddBlockInIpRule(string name, IPAddress ipAddress);
+// Adiciona uma regra de bloqueio (de entrada) para um endereço de IP no Firewall do Windows.
+public void AddBlockInIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de bloqueio (de entrada e saída) para um endereço de IP no Firewall do Windows.
-public void AddBlockIpRule(string name, IPAddress ipAddress);
+// Adiciona uma regra de bloqueio (de entrada e saída) para um endereço de IP no Firewall do Windows.
+public void AddBlockIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de bloqueio para um endereço de IP no Firewall do Windows.
-public void AddBlockIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction);
+// Adiciona uma regra de bloqueio para um endereço de IP no Firewall do Windows.
+public void AddBlockIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction, string description = "", string localPorts = "");
 
-// Adiciona uma nova regra de bloqueio (de saída) para um endereço de IP no Firewall do Windows.
-public void AddBlockOutIpRule(string name, IPAddress ipAddress);
+// Adiciona uma regra de bloqueio (de saída) para um endereço de IP no Firewall do Windows.
+public void AddBlockOutIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "");
 
-// Adiciona a regra especificada para o Firewall do Windows.
+// Adiciona a regra especificada ao Firewall do Windows.
 public void AddRule(INetFwRule rule);
 
-// Obtém uma nova regra do Firewall do Windows.
+// Cria uma nova regra (vazia) do Firewall do Windows.
 public static INetFwRule GetNewRule();
 
-// Obtém as regras do Firewall do Windows.
+// Obtém todas as regras do Firewall do Windows.
 public static INetFwRules GetRules();
 
-// Obtém os endereços de IPs associados à regra de firewall.
-public static List<IPAddress> GetIpsFromRule(string ruleName)
+// Obtém os endereços de IP associados às regras com o nome especificado.
+public static List<IPAddress> GetIpsFromRule(string ruleName);
 
-// Adiciona o endereço de IP especificado para a regra especificada.
-public static void AddIpToRule(string ruleName, IPAddress ipAddress);
+// Adiciona o endereço de IP às regras com o nome especificado. Retorna false se nenhuma regra existir.
+public static bool AddIpToRule(string ruleName, IPAddress ipAddress);
 
-// Remove o endereço de IP especificado para a regra especificada.
-public static void RemoveIpToRule(string ruleName, IPAddress ipAddress);
+// Remove o endereço de IP das regras com o nome especificado. Retorna false se nenhuma regra existir.
+public static bool RemoveIpFromRule(string ruleName, IPAddress ipAddress);
 ```
 
 ## Colaboração
@@ -110,7 +112,7 @@ Ajude-nos a deixar a biblioteca de código aberto cada vez melhor, criando um **
 
 ## Autores
 
-- [**KempDec**](https://github.com/kempdec) - Mantedora do projeto de código aberto.
+- [**KempDec**](https://github.com/kempdec) - Mantenedora do projeto de código aberto.
 - [**Vinícius Lima**](https://github.com/viniciusxdl) - Desenvolvedor .NET C#.
 
 ## Licença
