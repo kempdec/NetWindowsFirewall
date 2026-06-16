@@ -36,6 +36,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="NetWindowsFirewall.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <COMReference Include="NetFwTypeLib">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>0</VersionMinor>

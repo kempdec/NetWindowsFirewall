@@ -1,5 +1,4 @@
 using NetFwTypeLib;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 namespace KempDec.NetWindowsFirewall;
@@ -206,9 +205,9 @@ public class NetWindowsFirewall
 
         foreach (INetFwRule rule in FindRulesByName(ruleName))
         {
-            foreach (var address in SplitAddresses(rule.RemoteAddresses))
+            foreach (IPAddress ip in RuleAddresses.Parse(rule.RemoteAddresses))
             {
-                if (TryParseAddress(address, out IPAddress? ip) && !ips.Contains(ip))
+                if (!ips.Contains(ip))
                 {
                     ips.Add(ip);
                 }
@@ -236,16 +235,8 @@ public class NetWindowsFirewall
 
         foreach (INetFwRule rule in FindRulesByName(ruleName))
         {
+            rule.RemoteAddresses = RuleAddresses.Add(rule.RemoteAddresses, ipAddress);
             found = true;
-
-            var addresses = SplitAddresses(rule.RemoteAddresses);
-
-            if (addresses.Any(address => MatchesAddress(address, ipAddress)))
-            {
-                continue;
-            }
-
-            rule.RemoteAddresses = addresses.Length == 0 ? ipAddress.ToString() : $"{rule.RemoteAddresses},{ipAddress}";
         }
 
         return found;
@@ -269,11 +260,8 @@ public class NetWindowsFirewall
 
         foreach (INetFwRule rule in FindRulesByName(ruleName))
         {
+            rule.RemoteAddresses = RuleAddresses.Remove(rule.RemoteAddresses, ipAddress);
             found = true;
-
-            var addresses = SplitAddresses(rule.RemoteAddresses).Where(address => !MatchesAddress(address, ipAddress));
-
-            rule.RemoteAddresses = string.Join(',', addresses);
         }
 
         return found;
@@ -299,13 +287,4 @@ public class NetWindowsFirewall
             }
         }
     }
-
-    private static string[] SplitAddresses(string remoteAddresses) =>
-        remoteAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    private static bool MatchesAddress(string address, IPAddress ipAddress) =>
-        TryParseAddress(address, out IPAddress? parsed) && parsed.Equals(ipAddress);
-
-    private static bool TryParseAddress(string address, [NotNullWhen(true)] out IPAddress? ipAddress) =>
-        IPAddress.TryParse(address.Split('/', 2)[0], out ipAddress);
 }

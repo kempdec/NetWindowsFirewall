@@ -108,7 +108,9 @@ public static bool RemoveIpFromRule(string ruleName, IPAddress ipAddress);
 
 ## Colaboração
 
-Ajude-nos a deixar a biblioteca de código aberto cada vez melhor, criando um **pull request**.
+Ajude-nos a deixar esta biblioteca de código aberto cada vez melhor! Antes de abrir um **pull request**, dê uma
+olhada no [guia de contribuição](CONTRIBUTING.md) e no [código de conduta](CODE_OF_CONDUCT.md). O histórico de
+mudanças está no [CHANGELOG](CHANGELOG.md).
 
 ## Autores
 
