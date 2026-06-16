@@ -1,150 +1,140 @@
-﻿using NetFwTypeLib;
+using NetFwTypeLib;
 using System.Net;
 
 namespace KempDec.NetWindowsFirewall;
 
 /// <summary>
-/// Classe com métodos auxiliares para o Firewall do Windows.
+/// Métodos auxiliares para gerenciar as regras do Firewall do Windows.
 /// </summary>
 public class NetWindowsFirewall
 {
+    private static readonly Lazy<NetWindowsFirewall> s_instance = new(() => new NetWindowsFirewall());
+
     /// <summary>
     /// Inicializa uma nova instância de <see cref="NetWindowsFirewall"/>.
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">A interface COM do Firewall do Windows
+    /// (<c>HNetCfg.FwPolicy2</c>) não pôde ser obtida ou instanciada.</exception>
     public NetWindowsFirewall()
     {
         Type firewallType = Type.GetTypeFromProgID("HNetCfg.FwPolicy2")
             ?? throw new InvalidOperationException("Não foi possível obter o tipo da interface do Firewall do " +
                 "Windows.");
 
-        INetFwPolicy2 firewall = Activator.CreateInstance(firewallType) as INetFwPolicy2
+        Firewall = Activator.CreateInstance(firewallType) as INetFwPolicy2
             ?? throw new InvalidOperationException("Não foi possível criar uma instância do Firewall do Windows.");
-
-        Firewall = firewall;
     }
 
     /// <summary>
-    /// A instância de <see cref="NetWindowsFirewall"/>.
+    /// Obtém a instância compartilhada de <see cref="NetWindowsFirewall"/>.
     /// </summary>
-    private static NetWindowsFirewall? s_instance;
+    public static NetWindowsFirewall Instance => s_instance.Value;
 
     /// <summary>
-    /// Obtém a instância do Firewall do Windows.
+    /// Obtém a política do Firewall do Windows associada a esta instância.
     /// </summary>
     public INetFwPolicy2 Firewall { get; }
 
     /// <summary>
-    /// Obtém a instância de <see cref="NetWindowsFirewall"/>.
+    /// Adiciona uma regra de permissão (de entrada) para um endereço de IP no Firewall do Windows.
     /// </summary>
-    public static NetWindowsFirewall Instance => s_instance ??= new();
-
-    /// <summary>
-    /// Adiciona uma nova regra de permissão (de entrada) para um endereço de IP no Firewall do Windows.
-    /// </summary>
-    /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
-    public void AddAllowInIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será permitido pela regra.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
+    public void AddAllowInIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN,
-            description, remotePorts);
+            description, localPorts);
 
     /// <summary>
-    /// Adiciona uma nova regra de permissão (de entrada e saída) para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de permissão (de entrada e saída) para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
-    public void AddAllowIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "")
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será permitido pela regra.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
+    public void AddAllowIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "")
     {
-        AddAllowInIpRule(name, ipAddress, description, remotePorts);
-        AddAllowOutIpRule(name, ipAddress, description, remotePorts);
+        AddAllowInIpRule(name, ipAddress, description, localPorts);
+        AddAllowOutIpRule(name, ipAddress, description, localPorts);
     }
 
     /// <summary>
-    /// Adiciona uma nova regra de permissão para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de permissão para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
-    /// <param name="direction">A direção da regra de bloqueio a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será permitido pela regra.</param>
+    /// <param name="direction">A direção da regra de permissão.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
     public void AddAllowIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction,
-        string description = "", string remotePorts = "") =>
-            AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, direction, description, remotePorts);
+        string description = "", string localPorts = "") =>
+            AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, direction, description, localPorts);
 
     /// <summary>
-    /// Adiciona uma nova regra de permissão (de saída) para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de permissão (de saída) para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
-    public void AddAllowOutIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será permitido pela regra.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
+    public void AddAllowOutIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT,
-            description, remotePorts);
+            description, localPorts);
 
     /// <summary>
-    /// Adiciona uma nova regra de bloqueio (de entrada) para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de bloqueio (de entrada) para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
-    public void AddBlockInIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será bloqueado pela regra.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
+    public void AddBlockInIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN,
-            description, remotePorts);
+            description, localPorts);
 
     /// <summary>
-    /// Adiciona uma nova regra de bloqueio (de entrada e saída) para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de bloqueio (de entrada e saída) para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
-    public void AddBlockIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "")
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será bloqueado pela regra.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
+    public void AddBlockIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "")
     {
-        AddBlockInIpRule(name, ipAddress, description, remotePorts);
-        AddBlockOutIpRule(name, ipAddress, description, remotePorts);
+        AddBlockInIpRule(name, ipAddress, description, localPorts);
+        AddBlockOutIpRule(name, ipAddress, description, localPorts);
     }
 
     /// <summary>
-    /// Adiciona uma nova regra de bloqueio para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de bloqueio para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
-    /// <param name="direction">A direção da regra de bloqueio a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será bloqueado pela regra.</param>
+    /// <param name="direction">A direção da regra de bloqueio.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
     public void AddBlockIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction,
-        string description = "", string remotePorts = "") =>
-            AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, direction, description, remotePorts);
+        string description = "", string localPorts = "") =>
+            AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, direction, description, localPorts);
 
     /// <summary>
-    /// Adiciona uma nova regra de bloqueio (de saída) para um endereço de IP no Firewall do Windows.
+    /// Adiciona uma regra de bloqueio (de saída) para um endereço de IP no Firewall do Windows.
     /// </summary>
-    /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
-    public void AddBlockOutIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
+    /// <param name="name">O nome da regra.</param>
+    /// <param name="ipAddress">O endereço de IP que será bloqueado pela regra.</param>
+    /// <param name="description">A descrição da regra.</param>
+    /// <param name="localPorts">As portas locais (TCP) às quais a regra se aplica.</param>
+    public void AddBlockOutIpRule(string name, IPAddress ipAddress, string description = "", string localPorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT,
-            description, remotePorts);
+            description, localPorts);
 
-    /// <summary>
-    /// Adiciona uma nova regra para um endereço de IP no Firewall do Windows.
-    /// </summary>
-    /// <param name="name">O nome da regra a ser adicionada.</param>
-    /// <param name="ipAddress">O endereço de IP da regra a ser adicionada.</param>
-    /// <param name="action">A ação da regra a ser adicionada.</param>
-    /// <param name="direction">A direção da regra a ser adicionada.</param>
-    /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
     private void AddIpRule(string name, IPAddress ipAddress, NET_FW_ACTION_ action, NET_FW_RULE_DIRECTION_ direction,
-        string description = "", string remotePorts = "")
+        string description, string localPorts)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(ipAddress);
+
         INetFwRule rule = GetNewRule();
 
         rule.Action = action;
@@ -155,26 +145,33 @@ public class NetWindowsFirewall
         rule.Name = name;
         rule.RemoteAddresses = ipAddress.ToString();
 
-        if (!string.IsNullOrWhiteSpace(remotePorts))
+        if (!string.IsNullOrWhiteSpace(localPorts))
         {
             rule.Protocol = (int)NET_FW_IP_PROTOCOL_.NET_FW_IP_PROTOCOL_TCP;
-            rule.LocalPorts = remotePorts;
+            rule.LocalPorts = localPorts;
         }
 
         AddRule(rule);
     }
 
     /// <summary>
-    /// Adiciona a regra especificada para o Firewall do Windows.
+    /// Adiciona a regra especificada ao Firewall do Windows.
     /// </summary>
-    /// <param name="rule">A regra a ser adicionada para o Firewall do Windows.</param>
-    public void AddRule(INetFwRule rule) => Firewall.Rules.Add(rule);
+    /// <param name="rule">A regra a ser adicionada.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="rule"/> é <see langword="null"/>.</exception>
+    public void AddRule(INetFwRule rule)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+
+        Firewall.Rules.Add(rule);
+    }
 
     /// <summary>
-    /// Obtém uma nova regra do Firewall do Windows.
+    /// Cria uma nova regra (vazia) do Firewall do Windows.
     /// </summary>
     /// <returns>A nova regra do Firewall do Windows.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">A interface COM da regra (<c>HNetCfg.FWRule</c>) não pôde ser
+    /// obtida ou instanciada.</exception>
     public static INetFwRule GetNewRule()
     {
         Type ruleType = Type.GetTypeFromProgID("HNetCfg.FWRule")
@@ -187,113 +184,107 @@ public class NetWindowsFirewall
     }
 
     /// <summary>
-    /// Obtém as regras do Firewall do Windows.
+    /// Obtém todas as regras do Firewall do Windows.
     /// </summary>
     /// <returns>As regras do Firewall do Windows.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    public static INetFwRules GetRules()
+    /// <exception cref="InvalidOperationException">A política do Firewall do Windows não pôde ser obtida.</exception>
+    public static INetFwRules GetRules() => Instance.Firewall.Rules;
+
+    /// <summary>
+    /// Obtém os endereços de IP associados às regras com o nome especificado.
+    /// </summary>
+    /// <param name="ruleName">O nome das regras nas quais os endereços de IP serão buscados.</param>
+    /// <returns>Os endereços de IP associados às regras com o nome especificado, sem duplicatas. A lista é vazia
+    /// quando nenhuma regra com esse nome existe.</returns>
+    /// <exception cref="ArgumentException"><paramref name="ruleName"/> é <see langword="null"/> ou vazio.</exception>
+    public static List<IPAddress> GetIpsFromRule(string ruleName)
     {
-        Type policyType = Type.GetTypeFromProgID("HNetCfg.FwPolicy2")
-            ?? throw new InvalidOperationException("Não foi possível obter o tipo da interface de política do " +
-            "Firewall do Windows.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleName);
 
-        INetFwPolicy2 policy = Activator.CreateInstance(policyType) as INetFwPolicy2
-            ?? throw new InvalidOperationException("Não foi possível obter a política do Firewall.");
+        var ips = new List<IPAddress>();
 
-        return policy.Rules;
+        foreach (INetFwRule rule in FindRulesByName(ruleName))
+        {
+            foreach (IPAddress ip in RuleAddresses.Parse(rule.RemoteAddresses))
+            {
+                if (!ips.Contains(ip))
+                {
+                    ips.Add(ip);
+                }
+            }
+        }
+
+        return ips;
     }
 
     /// <summary>
-    /// Obtém os endereços de IPs associados à regra de firewall, se houver alguma com o nome especificado.
+    /// Adiciona o endereço de IP especificado às regras com o nome especificado.
     /// </summary>
-    /// <param name="ruleName">O nome da regra no qual os endereços IPs serão buscados.</param>
-    /// <returns>Os endereços de IPs associados à regra de firewall, se houver alguma com 
-    /// o nome especificado.</returns>
-    public static List<IPAddress> GetIpsFromRule(string ruleName)
+    /// <param name="ruleName">O nome das regras às quais o endereço de IP será adicionado.</param>
+    /// <param name="ipAddress">O endereço de IP a ser adicionado.</param>
+    /// <returns><see langword="true"/> se ao menos uma regra com o nome especificado foi encontrada; caso
+    /// contrário, <see langword="false"/>. Endereços já presentes na regra não são duplicados.</returns>
+    /// <exception cref="ArgumentException"><paramref name="ruleName"/> é <see langword="null"/> ou vazio.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="ipAddress"/> é <see langword="null"/>.</exception>
+    public static bool AddIpToRule(string ruleName, IPAddress ipAddress)
     {
-        var result = new List<IPAddress>();
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleName);
+        ArgumentNullException.ThrowIfNull(ipAddress);
 
-        INetFwRules rules = GetRules();
+        var found = false;
 
-        foreach (INetFwRule rule in rules)
+        foreach (INetFwRule rule in FindRulesByName(ruleName))
+        {
+            rule.RemoteAddresses = RuleAddresses.Add(rule.RemoteAddresses, ipAddress);
+            found = true;
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Remove o endereço de IP especificado das regras com o nome especificado.
+    /// </summary>
+    /// <param name="ruleName">O nome das regras das quais o endereço de IP será removido.</param>
+    /// <param name="ipAddress">O endereço de IP a ser removido.</param>
+    /// <returns><see langword="true"/> se ao menos uma regra com o nome especificado foi encontrada; caso
+    /// contrário, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="ruleName"/> é <see langword="null"/> ou vazio.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="ipAddress"/> é <see langword="null"/>.</exception>
+    public static bool RemoveIpFromRule(string ruleName, IPAddress ipAddress)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleName);
+        ArgumentNullException.ThrowIfNull(ipAddress);
+
+        var found = false;
+
+        foreach (INetFwRule rule in FindRulesByName(ruleName))
+        {
+            rule.RemoteAddresses = RuleAddresses.Remove(rule.RemoteAddresses, ipAddress);
+            found = true;
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Remove o endereço de IP especificado das regras com o nome especificado.
+    /// </summary>
+    /// <param name="ruleName">O nome das regras das quais o endereço de IP será removido.</param>
+    /// <param name="ipAddress">O endereço de IP a ser removido.</param>
+    /// <returns><see langword="true"/> se ao menos uma regra com o nome especificado foi encontrada; caso
+    /// contrário, <see langword="false"/>.</returns>
+    [Obsolete("Renomeado para RemoveIpFromRule. Este método será removido em uma versão futura.")]
+    public static bool RemoveIpToRule(string ruleName, IPAddress ipAddress) => RemoveIpFromRule(ruleName, ipAddress);
+
+    private static IEnumerable<INetFwRule> FindRulesByName(string ruleName)
+    {
+        foreach (INetFwRule rule in GetRules())
         {
             if (rule.Name == ruleName)
             {
-                var ips = rule.RemoteAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries
-                    | StringSplitOptions.TrimEntries);
-
-                foreach (var ipStr in ips)
-                {
-                    var cleanIp = ipStr.Split('/')[0];
-
-                    if (IPAddress.TryParse(cleanIp, out IPAddress? ip))
-                    {
-                        result.Add(ip);
-                    }
-                }
-
-                break;
+                yield return rule;
             }
         }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Adiciona o endereço de IP especificado para a regra especificada.
-    /// </summary>
-    /// <param name="ruleName">O nome da regra ao qual o endereço de IP será adicionado.</param>
-    /// <param name="ipAddress">O endereço de IP a ser adicionado.</param>
-    /// <returns>Um sinalizador indicando se o endereço de IP especificado foi adicionado para a regra
-    /// especificada. Quando o sinalizador é <see langword="false"/> indica que a regra não existe no
-    /// Firewall.</returns>
-    public static bool AddIpToRule(string ruleName, IPAddress ipAddress)
-    {
-        INetFwRules rules = GetRules();
-
-        foreach (INetFwRule2 rule in rules)
-        {
-            if (rule.Name != ruleName)
-            {
-                continue;
-            }
-
-            rule.RemoteAddresses += $",{ipAddress}";
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Remove o endereço de IP especificado para a regra especificada.
-    /// </summary>
-    /// <param name="ruleName">O nome da regra ao qual o endereço de IP será removido.</param>
-    /// <param name="ipAddress">O endereço de IP a ser removido.</param>
-    /// <returns>Um sinalizador indicando se o endereço de IP especificado foi removido da regra
-    /// especificada. Quando o sinalizador é <see langword="false"/> indica que a regra não existe no
-    /// Firewall.</returns>
-    public static bool RemoveIpToRule(string ruleName, IPAddress ipAddress)
-    {
-        INetFwRules rules = GetRules();
-
-        foreach (INetFwRule rule in rules)
-        {
-            if (rule.Name != ruleName)
-            {
-                continue;
-            }
-
-            var ips = rule.RemoteAddresses.Split(',').ToList();
-
-            ips.RemoveAll(e => e.Contains(ipAddress.ToString()));
-
-            rule.RemoteAddresses = string.Join(',', ips);
-
-            return true;
-        }
-
-        return false;
     }
 }
