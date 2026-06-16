@@ -2,23 +2,21 @@ name: Publicar
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - "packages/**"
+    tags:
+      - "v*"
 
   workflow_dispatch:
     inputs:
       version:
-        description: "version: A vers„o do release a ser criado."
+        description: "version: A vers√£o do release a ser criado."
         required: false
 
       branch:
-        description: "branch: O branch do repositÛrio do release a ser criado."
+        description: "branch: O branch do reposit√≥rio do release a ser criado."
         required: false
 
       pre-release:
-        description: "pre-release: Um sinalizador indicando se o release È um pre-release."
+        description: "pre-release: Um sinalizador indicando se o release √© um pre-release."
         type: boolean
         required: false
 
@@ -45,23 +43,25 @@ jobs:
   publish:
     name: Publicar pacote
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout do repositÛrio
+      - name: Checkout do reposit√≥rio
         uses: actions/checkout@v4
 
       - name: Configurar .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.x
-          
-      - name: Carregar o pacote no NuGet
-        run: |
-          cd packages/
-          dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
 
-      - name: Carregar o pacote no GitHub
-        run: |
-          cd packages/
-          dotnet nuget push *.nupkg --api-key ${{ secrets.PACKAGE_TOKEN }} --source "https://nuget.pkg.github.com/kempdec/index.json" --skip-duplicate
+      - name: Configurar MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Empacotar
+        run: msbuild src\NetWindowsFirewall\NetWindowsFirewall.csproj -restore -t:Pack -p:Configuration=Release
+
+      - name: Publicar no NuGet
+        run: dotnet nuget push packages\*.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+
+      - name: Publicar no GitHub
+        run: dotnet nuget push packages\*.nupkg --api-key ${{ secrets.PACKAGE_TOKEN }} --source "https://nuget.pkg.github.com/kempdec/index.json" --skip-duplicate
