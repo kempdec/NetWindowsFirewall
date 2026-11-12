@@ -222,6 +222,157 @@ public class NetWindowsFirewall
     public static INetFwRules GetRules() => CreatePolicy().Rules;
 
     /// <summary>
+    /// Obtém os endereços de IPs associados à regra de firewall, se houver alguma com o nome especificado.
+    /// </summary>
+    /// <remarks>
+    /// Os endereços vêm sem a máscara (<c>1.2.3.4/255.255.255.255</c> vira <c>1.2.3.4</c>). Faixas de endereços e
+    /// palavras reservadas, como <c>LocalSubnet</c>, ficam de fora. Quando há mais de uma regra com o nome
+    /// especificado, como a de entrada e a de saída criadas por <see cref="AddBlockIpRule(string, IPAddress, string,
+    /// string)"/>, os endereços vêm da primeira.
+    /// </remarks>
+    /// <param name="ruleName">O nome da regra no qual os endereços IPs serão buscados.</param>
+    /// <returns>Os endereços de IPs associados à regra de firewall, se houver alguma com
+    /// o nome especificado.</returns>
+    public static List<IPAddress> GetIpsFromRule(string ruleName)
+    {
+        INetFwRule? rule = FindRules(ruleName).FirstOrDefault();
+
+        return rule is null ? [] : RemoteAddressList.GetAddresses(rule.RemoteAddresses);
+    }
+
+    /// <summary>
+    /// Adiciona o endereço de IP especificado para a regra especificada.
+    /// </summary>
+    /// <param name="ruleName">O nome da regra ao qual o endereço de IP será adicionado.</param>
+    /// <param name="ipAddress">O endereço de IP a ser adicionado.</param>
+    /// <returns>Um sinalizador indicando se o endereço de IP especificado foi adicionado para a regra
+    /// especificada. Quando o sinalizador é <see langword="false"/> indica que a regra não existe no
+    /// Firewall.</returns>
+    public static bool AddIpToRule(string ruleName, IPAddress ipAddress)
+    {
+        INetFwRules rules = GetRules();
+
+        foreach (INetFwRule2 rule in rules)
+        {
+            if (rule.Name != ruleName)
+            {
+                continue;
+            }
+
+            rule.RemoteAddresses += $",{ipAddress}";
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Remove o endereço de IP especificado para a regra especificada.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Sai da regra só o endereço especificado, com qualquer máscara: tirar <c>1.2.3.4</c> não tira
+    /// <c>11.2.3.45</c>. O endereço sai de todas as regras com o nome especificado, como a de entrada e a de saída
+    /// criadas por <see cref="AddBlockIpRule(string, IPAddress, string, string)"/>.
+    /// </para>
+    /// <para>
+    /// Uma regra sem endereço vale para todos os endereços: uma regra de bloqueio passaria a bloquear tudo. Por isso,
+    /// quando o endereço é o único de alguma das regras, nada é alterado e uma <see cref="InvalidOperationException"/>
+    /// é lançada. Para deixar de usar a regra, apague-a com <see cref="RemoveRule(string)"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="ruleName">O nome da regra ao qual o endereço de IP será removido.</param>
+    /// <param name="ipAddress">O endereço de IP a ser removido.</param>
+    /// <returns>Um sinalizador indicando se o endereço de IP especificado foi removido da regra
+    /// especificada. Quando o sinalizador é <see langword="false"/> indica que a regra não existe no
+    /// Firewall.</returns>
+    /// <exception cref="InvalidOperationException">O endereço é o único de alguma das regras.</exception>
+    public static bool RemoveIpToRule(string ruleName, IPAddress ipAddress)
+    {
+        ArgumentNullException.ThrowIfNull(ipAddress);
+
+        List<INetFwRule> rules = FindRules(ruleName);
+        var changes = new List<(INetFwRule Rule, string RemoteAddresses)>();
+
+        // Confere todas as regras antes de alterar alguma: ou todas mudam, ou nenhuma.
+        foreach (INetFwRule rule in rules)
+        {
+            if (!RemoteAddressList.Contains(rule.RemoteAddresses, ipAddress))
+            {
+                continue;
+            }
+
+            string remoteAddresses = RemoteAddressList.Remove(rule.RemoteAddresses, ipAddress);
+
+            if (remoteAddresses.Length == 0)
+            {
+                throw new InvalidOperationException($"O endereço {ipAddress} é o único da regra \"{ruleName}\", e " +
+                    "uma regra sem endereço vale para todos os endereços. Para deixar de usar a regra, apague-a com " +
+                    $"{nameof(RemoveRule)}; para trocar o endereço, adicione o novo antes de remover o antigo.");
+            }
+
+            changes.Add((rule, remoteAddresses));
+        }
+
+        foreach ((INetFwRule rule, string remoteAddresses) in changes)
+        {
+            rule.RemoteAddresses = remoteAddresses;
+        }
+
+        return rules.Count > 0;
+    }
+
+    /// <summary>
+    /// Remove do Firewall do Windows todas as regras com o nome especificado, como a de entrada e a de saída criadas
+    /// por <see cref="AddBlockIpRule(string, IPAddress, string, string)"/>.
+    /// </summary>
+    /// <param name="ruleName">O nome das regras a serem removidas.</param>
+    /// <returns>A quantidade de regras removidas. Zero indica que nenhuma regra tem o nome especificado.</returns>
+    public static int RemoveRule(string ruleName)
+    {
+        INetFwRules rules = GetRules();
+        int count = FindRules(rules, ruleName).Count;
+
+        // Remove uma de cada vez e confere o que sobrou, porque a remoção pelo nome não garante tirar todas as regras
+        // com o mesmo nome numa chamada só. O limite evita repetir sem fim se alguma regra não puder ser removida.
+        for (int i = 0; i < count && FindRules(rules, ruleName).Count > 0; i++)
+        {
+            rules.Remove(ruleName);
+        }
+
+        return count - FindRules(rules, ruleName).Count;
+    }
+
+    /// <summary>
+    /// Obtém as regras do Firewall do Windows com o nome especificado.
+    /// </summary>
+    /// <param name="ruleName">O nome das regras.</param>
+    /// <returns>As regras com o nome especificado, na ordem do Firewall.</returns>
+    private static List<INetFwRule> FindRules(string ruleName) => FindRules(GetRules(), ruleName);
+
+    /// <summary>
+    /// Obtém as regras com o nome especificado.
+    /// </summary>
+    /// <param name="rules">As regras do Firewall do Windows.</param>
+    /// <param name="ruleName">O nome das regras.</param>
+    /// <returns>As regras com o nome especificado, na ordem do Firewall.</returns>
+    private static List<INetFwRule> FindRules(INetFwRules rules, string ruleName)
+    {
+        var result = new List<INetFwRule>();
+
+        foreach (INetFwRule rule in rules)
+        {
+            if (rule.Name == ruleName)
+            {
+                result.Add(rule);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// O identificador COM da política do Firewall do Windows.
     /// </summary>
     private const string PolicyProgId = "HNetCfg.FwPolicy2";
@@ -257,97 +408,4 @@ public class NetWindowsFirewall
         return Activator.CreateInstance(type) as T ?? throw new InvalidOperationException(instanceNotCreatedMessage);
     }
 
-    /// <summary>
-    /// Obtém os endereços de IPs associados à regra de firewall, se houver alguma com o nome especificado.
-    /// </summary>
-    /// <param name="ruleName">O nome da regra no qual os endereços IPs serão buscados.</param>
-    /// <returns>Os endereços de IPs associados à regra de firewall, se houver alguma com 
-    /// o nome especificado.</returns>
-    public static List<IPAddress> GetIpsFromRule(string ruleName)
-    {
-        var result = new List<IPAddress>();
-
-        INetFwRules rules = GetRules();
-
-        foreach (INetFwRule rule in rules)
-        {
-            if (rule.Name == ruleName)
-            {
-                var ips = rule.RemoteAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries
-                    | StringSplitOptions.TrimEntries);
-
-                foreach (var ipStr in ips)
-                {
-                    var cleanIp = ipStr.Split('/')[0];
-
-                    if (IPAddress.TryParse(cleanIp, out IPAddress? ip))
-                    {
-                        result.Add(ip);
-                    }
-                }
-
-                break;
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Adiciona o endereço de IP especificado para a regra especificada.
-    /// </summary>
-    /// <param name="ruleName">O nome da regra ao qual o endereço de IP será adicionado.</param>
-    /// <param name="ipAddress">O endereço de IP a ser adicionado.</param>
-    /// <returns>Um sinalizador indicando se o endereço de IP especificado foi adicionado para a regra
-    /// especificada. Quando o sinalizador é <see langword="false"/> indica que a regra não existe no
-    /// Firewall.</returns>
-    public static bool AddIpToRule(string ruleName, IPAddress ipAddress)
-    {
-        INetFwRules rules = GetRules();
-
-        foreach (INetFwRule2 rule in rules)
-        {
-            if (rule.Name != ruleName)
-            {
-                continue;
-            }
-
-            rule.RemoteAddresses += $",{ipAddress}";
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Remove o endereço de IP especificado para a regra especificada.
-    /// </summary>
-    /// <param name="ruleName">O nome da regra ao qual o endereço de IP será removido.</param>
-    /// <param name="ipAddress">O endereço de IP a ser removido.</param>
-    /// <returns>Um sinalizador indicando se o endereço de IP especificado foi removido da regra
-    /// especificada. Quando o sinalizador é <see langword="false"/> indica que a regra não existe no
-    /// Firewall.</returns>
-    public static bool RemoveIpToRule(string ruleName, IPAddress ipAddress)
-    {
-        INetFwRules rules = GetRules();
-
-        foreach (INetFwRule rule in rules)
-        {
-            if (rule.Name != ruleName)
-            {
-                continue;
-            }
-
-            var ips = rule.RemoteAddresses.Split(',').ToList();
-
-            ips.RemoveAll(e => e.Contains(ipAddress.ToString()));
-
-            rule.RemoteAddresses = string.Join(',', ips);
-
-            return true;
-        }
-
-        return false;
-    }
 }
