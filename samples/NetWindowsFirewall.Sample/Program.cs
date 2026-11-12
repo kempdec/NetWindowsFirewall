@@ -1,33 +1,41 @@
 ﻿using KempDec.NetWindowsFirewall;
 using System.Net;
+using System.Security.Principal;
 
-var ipAddress = IPAddress.Parse("22.5.3.6");
+// Exemplo do NetWindowsFirewall: bloqueia um endereço, acrescenta e tira outro da mesma regra, e apaga a regra no fim,
+// para não deixar nada no Firewall de quem roda o exemplo. Os endereços são da faixa reservada para documentação
+// (203.0.113.0/24), que não pertence a ninguém.
 
-//NetWindowsFirewall.AddIpToRule("Bloqueio da Game.Service", ipAddress);
-NetWindowsFirewall.RemoveIpToRule("Bloqueio da Game.Service", ipAddress);
+const string RuleName = "Exemplo do NetWindowsFirewall";
 
-//// Exemplo com a instância estática de NetWindowsFirewall:
-//// -----------------------------------------------------------------------------------------------------
+if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
+{
+    Console.WriteLine("O exemplo altera o Firewall do Windows, e isso exige permissão de administrador.");
+    Console.WriteLine("Abra o terminal como administrador e rode o exemplo de novo.");
 
-//// Adiciona uma regra de bloqueio (de entrada e saída) para o endereço de IP "127.0.1" no Firewall do Windows.
-//NetWindowsFirewall.Instance.AddBlockIpRule($"IP {ipAddress} bloqueado", ipAddress);
+    return 1;
+}
 
-//// Adiciona uma regra de bloqueio (de entrada) para o endereço de IP "127.0.1" no Firewall do Windows.
-//NetWindowsFirewall.Instance.AddBlockInIpRule($"IP {ipAddress} bloqueado", ipAddress);
+IPAddress firstAddress = IPAddress.Parse("203.0.113.10");
+IPAddress secondAddress = IPAddress.Parse("203.0.113.20");
 
-//// Adiciona uma regra de bloqueio (de saída) para o endereço de IP "127.0.0.1" no Firewall do Windows.
-//NetWindowsFirewall.Instance.AddBlockOutIpRule($"IP {ipAddress} bloqueado", ipAddress);
+// Cria duas regras com o mesmo nome: uma de entrada e uma de saída.
+NetWindowsFirewall.Instance.AddBlockIpRule(RuleName, firstAddress,
+    description: "Criada pelo exemplo do NetWindowsFirewall.");
+Console.WriteLine($"Regra \"{RuleName}\" criada, bloqueando {firstAddress}.");
 
-//// Exemplo com criação de uma instância manual:
-//// -----------------------------------------------------------------------------------------------------
+// Acrescenta um segundo endereço às duas regras. Acrescentar de novo não duplica.
+NetWindowsFirewall.AddIpToRule(RuleName, secondAddress);
+NetWindowsFirewall.AddIpToRule(RuleName, secondAddress);
+Console.WriteLine($"Endereços bloqueados: {string.Join(", ", NetWindowsFirewall.GetIpsFromRule(RuleName))}.");
 
-//var netWindowsFirewall = new NetWindowsFirewall();
+// Tira o primeiro endereço; o segundo continua bloqueado.
+NetWindowsFirewall.RemoveIpToRule(RuleName, firstAddress);
+Console.WriteLine($"Endereços bloqueados: {string.Join(", ", NetWindowsFirewall.GetIpsFromRule(RuleName))}.");
 
-//// Adiciona uma regra de bloqueio (de entrada e saída) para o endereço de IP "127.0.1" no Firewall do Windows.
-//netWindowsFirewall.AddBlockIpRule($"IP {ipAddress} bloqueado", ipAddress);
+// Tirar o último endereço lançaria um erro, porque uma regra sem endereço valeria para todos. Para deixar de bloquear,
+// apague a regra.
+int removed = NetWindowsFirewall.RemoveRule(RuleName);
+Console.WriteLine($"Regras apagadas: {removed}. O Firewall voltou a ser como era antes do exemplo.");
 
-//// Adiciona uma regra de bloqueio (de entrada) para o endereço de IP "127.0.1" no Firewall do Windows.
-//netWindowsFirewall.AddBlockInIpRule($"IP {ipAddress} bloqueado", ipAddress);
-
-//// Adiciona uma regra de bloqueio (de saída) para o endereço de IP "127.0.0.1" no Firewall do Windows.
-//netWindowsFirewall.AddBlockOutIpRule($"IP {ipAddress} bloqueado", ipAddress);
+return 0;
