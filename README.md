@@ -63,7 +63,7 @@ chamar o `netsh`.
 
    No Visual Studio, o mesmo fica nas **Propriedades do projeto (Alt + Enter)**, em **SO de Destino**:
 
-   ![SO de Destino no Visual Studio](assets/target-os.png)
+   ![SO de Destino no Visual Studio](https://raw.githubusercontent.com/kempdec/NetWindowsFirewall/main/assets/target-os.png)
 
 3. Rode o programa como administrador. Num serviço do Windows, use uma conta com essa permissão.
 
@@ -122,7 +122,7 @@ NetWindowsFirewall.RemoveRule("Endereços bloqueados");
 `AddIpToRule` e `RemoveIpToRule` devolvem `false` quando não existe regra com o nome informado, e `RemoveRule` devolve
 quantas regras apagou.
 
-A [amostra](samples/NetWindowsFirewall.Sample/Program.cs) mostra tudo isso junto e apaga no fim o que criou.
+A [amostra](https://github.com/kempdec/NetWindowsFirewall/blob/main/samples/NetWindowsFirewall.Sample/Program.cs) mostra tudo isso junto e apaga no fim o que criou.
 
 ## Métodos disponíveis
 
@@ -217,15 +217,15 @@ O Firewall protege o computador inteiro, e uma regra errada abre ou fecha mais d
 - **Confira o endereço que vem de fora.** Use `IPAddress.TryParse` antes de criar uma regra com um endereço digitado ou
   recebido pela rede.
 
-Para relatar uma vulnerabilidade, siga a [política de segurança](SECURITY.md), e não abra uma issue pública.
+Para relatar uma vulnerabilidade, siga a [política de segurança](https://github.com/kempdec/NetWindowsFirewall/blob/main/SECURITY.md), e não abra uma issue pública.
 
 ## Contribuição
 
-Correções e melhorias são bem-vindas. Veja [como contribuir](CONTRIBUTING.md): como compilar, testar e escrever as
+Correções e melhorias são bem-vindas. Veja [como contribuir](https://github.com/kempdec/NetWindowsFirewall/blob/main/CONTRIBUTING.md): como compilar, testar e escrever as
 mensagens de commit.
 
 O NetWindowsFirewall é mantido pela [KempDec](https://kempdec.com).
 
 ## Licença
 
-[MIT](LICENSE)
+[MIT](https://github.com/kempdec/NetWindowsFirewall/blob/main/LICENSE)
