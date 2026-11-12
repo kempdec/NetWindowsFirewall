@@ -12,17 +12,7 @@ public class NetWindowsFirewall
     /// Inicializa uma nova instância de <see cref="NetWindowsFirewall"/>.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
-    public NetWindowsFirewall()
-    {
-        Type firewallType = Type.GetTypeFromProgID("HNetCfg.FwPolicy2")
-            ?? throw new InvalidOperationException("Não foi possível obter o tipo da interface do Firewall do " +
-                "Windows.");
-
-        INetFwPolicy2 firewall = Activator.CreateInstance(firewallType) as INetFwPolicy2
-            ?? throw new InvalidOperationException("Não foi possível criar uma instância do Firewall do Windows.");
-
-        Firewall = firewall;
-    }
+    public NetWindowsFirewall() => Firewall = CreatePolicy();
 
     /// <summary>
     /// A instância de <see cref="NetWindowsFirewall"/>.
@@ -220,32 +210,51 @@ public class NetWindowsFirewall
     /// </summary>
     /// <returns>A nova regra do Firewall do Windows.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public static INetFwRule GetNewRule()
-    {
-        Type ruleType = Type.GetTypeFromProgID("HNetCfg.FWRule")
-            ?? throw new InvalidOperationException("Não foi possível obter o tipo da interface da regra do " +
-                "Firewall do Windows.");
-
-        return Activator.CreateInstance(ruleType) as INetFwRule
-            ?? throw new InvalidOperationException("Não foi possível criar uma instância da regra do Firewall do " +
-                "Windows.");
-    }
+    public static INetFwRule GetNewRule() => CreateComObject<INetFwRule>(RuleProgId,
+        "Não foi possível obter o tipo da interface da regra do Firewall do Windows.",
+        "Não foi possível criar uma instância da regra do Firewall do Windows.");
 
     /// <summary>
     /// Obtém as regras do Firewall do Windows.
     /// </summary>
     /// <returns>As regras do Firewall do Windows.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public static INetFwRules GetRules()
+    public static INetFwRules GetRules() => CreatePolicy().Rules;
+
+    /// <summary>
+    /// O identificador COM da política do Firewall do Windows.
+    /// </summary>
+    private const string PolicyProgId = "HNetCfg.FwPolicy2";
+
+    /// <summary>
+    /// O identificador COM de uma regra do Firewall do Windows.
+    /// </summary>
+    private const string RuleProgId = "HNetCfg.FWRule";
+
+    /// <summary>
+    /// Cria uma nova instância da política do Firewall do Windows.
+    /// </summary>
+    /// <returns>A política do Firewall do Windows.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private static INetFwPolicy2 CreatePolicy() => CreateComObject<INetFwPolicy2>(PolicyProgId,
+        "Não foi possível obter o tipo da interface de política do Firewall do Windows.",
+        "Não foi possível obter a política do Firewall.");
+
+    /// <summary>
+    /// Cria uma instância do objeto COM com o identificador especificado.
+    /// </summary>
+    /// <typeparam name="T">A interface do objeto COM.</typeparam>
+    /// <param name="progId">O identificador COM do objeto.</param>
+    /// <param name="typeNotFoundMessage">A mensagem de erro quando o tipo não existe neste computador.</param>
+    /// <param name="instanceNotCreatedMessage">A mensagem de erro quando o objeto não pode ser criado.</param>
+    /// <returns>A instância do objeto COM.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private static T CreateComObject<T>(string progId, string typeNotFoundMessage, string instanceNotCreatedMessage)
+        where T : class
     {
-        Type policyType = Type.GetTypeFromProgID("HNetCfg.FwPolicy2")
-            ?? throw new InvalidOperationException("Não foi possível obter o tipo da interface de política do " +
-            "Firewall do Windows.");
+        Type type = Type.GetTypeFromProgID(progId) ?? throw new InvalidOperationException(typeNotFoundMessage);
 
-        INetFwPolicy2 policy = Activator.CreateInstance(policyType) as INetFwPolicy2
-            ?? throw new InvalidOperationException("Não foi possível obter a política do Firewall.");
-
-        return policy.Rules;
+        return Activator.CreateInstance(type) as T ?? throw new InvalidOperationException(instanceNotCreatedMessage);
     }
 
     /// <summary>
