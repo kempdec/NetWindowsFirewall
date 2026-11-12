@@ -45,7 +45,12 @@ public class NetWindowsFirewall
     /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
     /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddAllowInIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN,
             description, remotePorts);
@@ -56,7 +61,12 @@ public class NetWindowsFirewall
     /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
     /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddAllowIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "")
     {
         AddAllowInIpRule(name, ipAddress, description, remotePorts);
@@ -70,7 +80,12 @@ public class NetWindowsFirewall
     /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
     /// <param name="direction">A direção da regra de bloqueio a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddAllowIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction,
         string description = "", string remotePorts = "") =>
             AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, direction, description, remotePorts);
@@ -81,7 +96,12 @@ public class NetWindowsFirewall
     /// <param name="name">O nome da regra de permissão a ser adicionada.</param>
     /// <param name="ipAddress">O endereço de IP que será permitido na regra de permissão a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddAllowOutIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_ALLOW, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT,
             description, remotePorts);
@@ -92,7 +112,12 @@ public class NetWindowsFirewall
     /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
     /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddBlockInIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN,
             description, remotePorts);
@@ -103,7 +128,12 @@ public class NetWindowsFirewall
     /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
     /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddBlockIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "")
     {
         AddBlockInIpRule(name, ipAddress, description, remotePorts);
@@ -117,7 +147,12 @@ public class NetWindowsFirewall
     /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
     /// <param name="direction">A direção da regra de bloqueio a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddBlockIpRule(string name, IPAddress ipAddress, NET_FW_RULE_DIRECTION_ direction,
         string description = "", string remotePorts = "") =>
             AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, direction, description, remotePorts);
@@ -128,7 +163,12 @@ public class NetWindowsFirewall
     /// <param name="name">O nome da regra de bloqueio a ser adicionada.</param>
     /// <param name="ipAddress">O endereço de IP que será bloqueado na regra de bloqueio a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     public void AddBlockOutIpRule(string name, IPAddress ipAddress, string description = "", string remotePorts = "") =>
         AddIpRule(name, ipAddress, NET_FW_ACTION_.NET_FW_ACTION_BLOCK, NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_OUT,
             description, remotePorts);
@@ -141,7 +181,12 @@ public class NetWindowsFirewall
     /// <param name="action">A ação da regra a ser adicionada.</param>
     /// <param name="direction">A direção da regra a ser adicionada.</param>
     /// <param name="description">A descrição da regra a ser adicionada.</param>
-    /// <param name="remotePorts">As portas remotas (TCP) da regra a ser adicionada.</param>
+    /// <param name="remotePorts">
+    /// As portas <b>locais</b> (TCP) da regra, como <c>"80"</c> ou <c>"80,443,8000-8010"</c>: as portas deste
+    /// computador. Apesar do nome, o valor vai para as portas locais da regra (<c>LocalPorts</c>), e não para as
+    /// remotas; o nome ficou assim para não quebrar quem já usa. Quando informado, a regra passa a valer só para TCP.
+    /// Vazio, a regra vale para todas as portas e protocolos.
+    /// </param>
     private void AddIpRule(string name, IPAddress ipAddress, NET_FW_ACTION_ action, NET_FW_RULE_DIRECTION_ direction,
         string description = "", string remotePorts = "")
     {
