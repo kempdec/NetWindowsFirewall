@@ -1,0 +1,45 @@
+name: Conferir
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  conferir:
+    name: Compilar, testar e gerar o pacote
+    # A biblioteca usa o COM do Firewall do Windows (NetFwTypeLib), que só compila no Windows.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar o .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # A referência COM (COMReference) não compila pelo `dotnet build`, só pelo MSBuild do Visual Studio.
+      - name: Configurar o MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restaurar e compilar
+        run: msbuild NetWindowsFirewall.sln -restore -p:Configuration=Release -nologo -verbosity:minimal
+
+      - name: Testar
+        run: dotnet test --project tests/NetWindowsFirewall.Tests --configuration Release --no-build
+
+      - name: Gerar o pacote
+        run: >-
+          msbuild src/NetWindowsFirewall/NetWindowsFirewall.csproj -t:Pack -p:Configuration=Release -p:NoBuild=true
+          -nologo -verbosity:minimal
+
+      - name: Guardar o pacote
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacote
+          path: published/
+          if-no-files-found: error
