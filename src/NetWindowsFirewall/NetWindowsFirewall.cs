@@ -243,6 +243,11 @@ public class NetWindowsFirewall
     /// <summary>
     /// Adiciona o endereço de IP especificado para a regra especificada.
     /// </summary>
+    /// <remarks>
+    /// O endereço é adicionado a todas as regras com o nome especificado, como a de entrada e a de saída criadas por
+    /// <see cref="AddBlockIpRule(string, IPAddress, string, string)"/>. Uma regra que já tem o endereço (com qualquer
+    /// máscara) ou que já vale para todos os endereços (<c>*</c>) não muda.
+    /// </remarks>
     /// <param name="ruleName">O nome da regra ao qual o endereço de IP será adicionado.</param>
     /// <param name="ipAddress">O endereço de IP a ser adicionado.</param>
     /// <returns>Um sinalizador indicando se o endereço de IP especificado foi adicionado para a regra
@@ -250,21 +255,21 @@ public class NetWindowsFirewall
     /// Firewall.</returns>
     public static bool AddIpToRule(string ruleName, IPAddress ipAddress)
     {
-        INetFwRules rules = GetRules();
+        ArgumentNullException.ThrowIfNull(ipAddress);
 
-        foreach (INetFwRule2 rule in rules)
+        List<INetFwRule> rules = FindRules(ruleName);
+
+        foreach (INetFwRule rule in rules)
         {
-            if (rule.Name != ruleName)
+            string remoteAddresses = RemoteAddressList.Add(rule.RemoteAddresses, ipAddress);
+
+            if (remoteAddresses != rule.RemoteAddresses)
             {
-                continue;
+                rule.RemoteAddresses = remoteAddresses;
             }
-
-            rule.RemoteAddresses += $",{ipAddress}";
-
-            return true;
         }
 
-        return false;
+        return rules.Count > 0;
     }
 
     /// <summary>
