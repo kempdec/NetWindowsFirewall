@@ -1,67 +1,141 @@
 name: Publicar
 
+# Publica a versão que está em <Version> no projeto da biblioteca (src/NetWindowsFirewall/NetWindowsFirewall.csproj).
+# Para publicar: suba o <Version> no develop, junte no main e o push no main dispara este fluxo. Um push no main que não
+# muda o projeto não dispara nada, e uma versão que já tem tag não é publicada de novo.
 on:
   push:
     branches:
       - main
     paths:
-      - "packages/**"
+      - "src/NetWindowsFirewall/NetWindowsFirewall.csproj"
 
   workflow_dispatch:
     inputs:
-      version:
-        description: "version: A vers�o do release a ser criado."
-        required: false
-
-      branch:
-        description: "branch: O branch do reposit�rio do release a ser criado."
-        required: false
-
       pre-release:
-        description: "pre-release: Um sinalizador indicando se o release � um pre-release."
+        description: "Marcar a release como pre-release."
         type: boolean
         required: false
 
+permissions:
+  contents: read
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
 jobs:
-  release:
-    name: Criar release
-    runs-on: ubuntu-latest
-    permissions: write-all
+  pacote:
+    name: Compilar, testar e gerar o pacote
+    # A biblioteca usa o COM do Firewall do Windows (NetFwTypeLib), que só compila no Windows.
+    runs-on: windows-latest
 
     outputs:
-      version: ${{ steps.release.outputs.output }}
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
 
     steps:
-      - name: Criar release
-        id: release
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar o .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Ler a versão e conferir se ela já foi publicada
+        id: version
+        shell: pwsh
+        run: |
+          $version = (dotnet msbuild src/NetWindowsFirewall/NetWindowsFirewall.csproj -getProperty:Version).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $version) {
+            Write-Output "::error::Não foi possível ler a versão do projeto. Confira o <Version> em src/NetWindowsFirewall/NetWindowsFirewall.csproj."
+            exit 1
+          }
+          $tag = git ls-remote --tags origin "refs/tags/v$version"
+          if ($tag) {
+            Write-Output "::notice::A versão $version já tem a tag v$version, então nada foi publicado. Para publicar, suba o <Version> do projeto."
+            "publish=false" >> $env:GITHUB_OUTPUT
+          } else {
+            "publish=true" >> $env:GITHUB_OUTPUT
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      # A referência COM (COMReference) não compila pelo `dotnet build`, só pelo MSBuild do Visual Studio.
+      - name: Configurar o MSBuild
+        if: steps.version.outputs.publish == 'true'
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restaurar e compilar
+        if: steps.version.outputs.publish == 'true'
+        run: msbuild NetWindowsFirewall.sln -restore -p:Configuration=Release -nologo -verbosity:minimal
+
+      - name: Testar
+        if: steps.version.outputs.publish == 'true'
+        run: dotnet test --project tests/NetWindowsFirewall.Tests --configuration Release --no-build
+
+      - name: Gerar o pacote
+        if: steps.version.outputs.publish == 'true'
+        run: >-
+          msbuild src/NetWindowsFirewall/NetWindowsFirewall.csproj -t:Pack -p:Configuration=Release -p:NoBuild=true
+          -nologo -verbosity:minimal
+
+      - name: Guardar o pacote
+        if: steps.version.outputs.publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacote
+          path: published/
+          if-no-files-found: error
+
+  publicar:
+    name: Publicar o pacote
+    needs: pacote
+    if: needs.pacote.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    # O envio usa os segredos NUGET_TOKEN e PACKAGE_TOKEN, e não o GITHUB_TOKEN, então o job só precisa ler o repositório.
+    permissions:
+      contents: read
+
+    steps:
+      - name: Baixar o pacote
+        uses: actions/download-artifact@v4
+        with:
+          name: pacote
+          path: published
+
+      - name: Configurar o .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # O pacote sai antes da release: se a release falhar, rodar de novo pula o pacote que já subiu (--skip-duplicate).
+      # Na ordem contrária, uma falha no envio deixaria uma release sem pacote. O NuGet recebe junto os símbolos
+      # (.snupkg), que ficam ao lado do pacote.
+      - name: Publicar o pacote no NuGet
+        run: >-
+          dotnet nuget push "published/*.nupkg" --api-key ${{ secrets.NUGET_TOKEN }}
+          --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publicar o pacote no GitHub Packages
+        run: >-
+          dotnet nuget push "published/*.nupkg" --api-key ${{ secrets.PACKAGE_TOKEN }}
+          --source https://nuget.pkg.github.com/kempdec/index.json --skip-duplicate --no-symbols
+
+  release:
+    name: Criar a release
+    needs: [pacote, publicar]
+    runs-on: ubuntu-latest
+    permissions:
+      # Criar a tag e a release; nada além disso.
+      contents: write
+
+    steps:
+      # A versão da release é a do pacote, e não uma calculada pelos commits: assim a tag e o pacote nunca divergem.
+      - name: Criar a release
         uses: kempdec/autorelease-action@v2
         env:
           AutoRelease_Token: ${{ secrets.GITHUB_TOKEN }}
-          AutoRelease_Branch: ${{ github.event.inputs.branch }}
-          AutoRelease_CreateCommand__Version: ${{ github.event.inputs.version }}
-          AutoRelease_CreateCommand__PreRelease: ${{ github.event.inputs.pre-release }}
+          AutoRelease_CreateCommand__Version: ${{ needs.pacote.outputs.version }}
+          AutoRelease_CreateCommand__PreRelease: ${{ inputs.pre-release }}
           AutoRelease_CreateCommand__OutputType: "Version"
-
-  publish:
-    name: Publicar pacote
-    needs: release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout do reposit�rio
-        uses: actions/checkout@v4
-
-      - name: Configurar .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.x
-          
-      - name: Carregar o pacote no NuGet
-        run: |
-          cd packages/
-          dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
-
-      - name: Carregar o pacote no GitHub
-        run: |
-          cd packages/
-          dotnet nuget push *.nupkg --api-key ${{ secrets.PACKAGE_TOKEN }} --source "https://nuget.pkg.github.com/kempdec/index.json" --skip-duplicate
