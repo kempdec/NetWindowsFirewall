@@ -299,7 +299,7 @@ public class NetWindowsFirewall
         List<INetFwRule> rules = FindRules(ruleName);
         var changes = new List<(INetFwRule Rule, string RemoteAddresses)>();
 
-        // Confere todas as regras antes de alterar alguma: ou todas mudam, ou nenhuma.
+        // Confere todas as regras antes de alterar alguma: se uma delas ficaria sem endereço, nenhuma muda.
         foreach (INetFwRule rule in rules)
         {
             if (!RemoteAddressList.Contains(rule.RemoteAddresses, ipAddress))
