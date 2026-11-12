@@ -203,16 +203,15 @@ public class NetWindowsFirewall
     /// Adiciona a regra especificada para o Firewall do Windows.
     /// </summary>
     /// <param name="rule">A regra a ser adicionada para o Firewall do Windows.</param>
-    public void AddRule(INetFwRule rule) => Firewall.Rules.Add(rule);
+    /// <exception cref="UnauthorizedAccessException">O programa não roda como administrador.</exception>
+    public void AddRule(INetFwRule rule) => RequireAdministrator(() => Firewall.Rules.Add(rule));
 
     /// <summary>
     /// Obtém uma nova regra do Firewall do Windows.
     /// </summary>
     /// <returns>A nova regra do Firewall do Windows.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public static INetFwRule GetNewRule() => CreateComObject<INetFwRule>(RuleProgId,
-        "Não foi possível obter o tipo da interface da regra do Firewall do Windows.",
-        "Não foi possível criar uma instância da regra do Firewall do Windows.");
+    public static INetFwRule GetNewRule() => CreateComObject<INetFwRule>(RuleProgId, "uma regra nova");
 
     /// <summary>
     /// Obtém as regras do Firewall do Windows.
@@ -265,7 +264,7 @@ public class NetWindowsFirewall
 
             if (remoteAddresses != rule.RemoteAddresses)
             {
-                rule.RemoteAddresses = remoteAddresses;
+                RequireAdministrator(() => rule.RemoteAddresses = remoteAddresses);
             }
         }
 
@@ -322,7 +321,7 @@ public class NetWindowsFirewall
 
         foreach ((INetFwRule rule, string remoteAddresses) in changes)
         {
-            rule.RemoteAddresses = remoteAddresses;
+            RequireAdministrator(() => rule.RemoteAddresses = remoteAddresses);
         }
 
         return rules.Count > 0;
@@ -343,7 +342,7 @@ public class NetWindowsFirewall
         // com o mesmo nome numa chamada só. O limite evita repetir sem fim se alguma regra não puder ser removida.
         for (int i = 0; i < count && FindRules(rules, ruleName).Count > 0; i++)
         {
-            rules.Remove(ruleName);
+            RequireAdministrator(() => rules.Remove(ruleName));
         }
 
         return count - FindRules(rules, ruleName).Count;
@@ -392,25 +391,48 @@ public class NetWindowsFirewall
     /// </summary>
     /// <returns>A política do Firewall do Windows.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private static INetFwPolicy2 CreatePolicy() => CreateComObject<INetFwPolicy2>(PolicyProgId,
-        "Não foi possível obter o tipo da interface de política do Firewall do Windows.",
-        "Não foi possível obter a política do Firewall.");
+    private static INetFwPolicy2 CreatePolicy() => CreateComObject<INetFwPolicy2>(PolicyProgId, "as regras");
 
     /// <summary>
     /// Cria uma instância do objeto COM com o identificador especificado.
     /// </summary>
     /// <typeparam name="T">A interface do objeto COM.</typeparam>
     /// <param name="progId">O identificador COM do objeto.</param>
-    /// <param name="typeNotFoundMessage">A mensagem de erro quando o tipo não existe neste computador.</param>
-    /// <param name="instanceNotCreatedMessage">A mensagem de erro quando o objeto não pode ser criado.</param>
+    /// <param name="what">O que se queria do Firewall, para a mensagem de erro (como "as regras").</param>
     /// <returns>A instância do objeto COM.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    private static T CreateComObject<T>(string progId, string typeNotFoundMessage, string instanceNotCreatedMessage)
+    /// <exception cref="InvalidOperationException">O Firewall do Windows não está disponível neste computador.
+    /// </exception>
+    private static T CreateComObject<T>(string progId, string what)
         where T : class
     {
-        Type type = Type.GetTypeFromProgID(progId) ?? throw new InvalidOperationException(typeNotFoundMessage);
+        Type? type = Type.GetTypeFromProgID(progId);
 
-        return Activator.CreateInstance(type) as T ?? throw new InvalidOperationException(instanceNotCreatedMessage);
+        if (type is not null && Activator.CreateInstance(type) is T instance)
+        {
+            return instance;
+        }
+
+        throw new InvalidOperationException($"Não foi possível obter {what} do Firewall do Windows neste computador. " +
+            "Confira se o programa roda no Windows e se o serviço Firewall do Windows (mpssvc) está ativo.");
     }
 
+
+    /// <summary>
+    /// Executa uma alteração no Firewall do Windows, trocando a recusa por falta de permissão por uma mensagem que
+    /// diz o que fazer.
+    /// </summary>
+    /// <param name="change">A alteração no Firewall do Windows.</param>
+    /// <exception cref="UnauthorizedAccessException">O programa não roda como administrador.</exception>
+    private static void RequireAdministrator(Action change)
+    {
+        try
+        {
+            change();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new UnauthorizedAccessException("O Windows recusou a alteração no Firewall porque o programa não " +
+                "roda como administrador. Rode o programa como administrador e tente de novo.", ex);
+        }
+    }
 }
