@@ -364,3 +364,5 @@ FodyWeavers.xsd
 
 # Folders exceptions
 !packages/**/*
+# Os pacotes gerados por dotnet pack (o CI gera os da publicação).
+published/

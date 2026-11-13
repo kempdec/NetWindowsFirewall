@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>KempDec.NetWindowsFirewall.Tests</AssemblyName>
+    <RootNamespace>KempDec.NetWindowsFirewall.Tests</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+
+  <!--
+    Os testes cobrem a lógica que não depende do Firewall do Windows. O arquivo dela entra aqui direto, e não pela
+    referência ao projeto da biblioteca, porque a biblioteca depende do COM do Windows para compilar: assim os testes
+    rodam em qualquer sistema e nunca mexem no Firewall de quem roda.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\NetWindowsFirewall\RemoteAddressList.cs" Link="Source\RemoteAddressList.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

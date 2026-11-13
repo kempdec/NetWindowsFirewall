@@ -9,6 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		autorelease.config.json = autorelease.config.json
+		global.json = global.json
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		CONTRIBUTING.md = CONTRIBUTING.md
+		SECURITY.md = SECURITY.md
 		.github\workflows\publish.yml = .github\workflows\publish.yml
 		README.md = README.md
 	EndProjectSection
@@ -16,6 +20,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetWindowsFirewall", "src\NetWindowsFirewall\NetWindowsFirewall.csproj", "{AF6C76AA-D9D7-47AB-95CC-9B9687B84D42}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetWindowsFirewall.Sample", "samples\NetWindowsFirewall.Sample\NetWindowsFirewall.Sample.csproj", "{FE9AD5C6-63BE-42B8-A9BB-953C37D07146}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetWindowsFirewall.Tests", "tests\NetWindowsFirewall.Tests\NetWindowsFirewall.Tests.csproj", "{B1BB5127-832A-4D30-9092-F8B18D65018C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +37,10 @@ Global
 		{FE9AD5C6-63BE-42B8-A9BB-953C37D07146}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE9AD5C6-63BE-42B8-A9BB-953C37D07146}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE9AD5C6-63BE-42B8-A9BB-953C37D07146}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1BB5127-832A-4D30-9092-F8B18D65018C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1BB5127-832A-4D30-9092-F8B18D65018C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1BB5127-832A-4D30-9092-F8B18D65018C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1BB5127-832A-4D30-9092-F8B18D65018C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
